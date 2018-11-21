@@ -4,7 +4,7 @@ const largeSend = require('./utils/email').largeSend;
 const Letter = require('./db/models/news-letter');
 
 const queue = "email";
-amqp.connect('amqp://localhost').then(conn => {
+amqp.connect(process.env.RABBITMQ_SERVER).then(conn => {
   process.once('SIGINT', conn.close.bind(conn));
   return conn.createChannel().then(ch => {
     ch.prefetch(1);

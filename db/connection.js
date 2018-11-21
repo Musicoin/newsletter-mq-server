@@ -1,3 +1,3 @@
 const mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/musicoin-org');
+mongoose.connect(process.env.MONGODB_SERVER);
 module.exports = mongoose
