@@ -37,6 +37,12 @@ async function handleMessage(channel, message) {
       _id: id
     }).exec();
 
+    if(!letter){
+      channel.ack(message);
+      console.log("task complete.");
+      return
+    }
+
     const subject = letter.subject;
     const html = letter.html;
     const addresses = letter.addresses;
