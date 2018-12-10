@@ -50,7 +50,7 @@ async function handleMessage(channel, message) {
       return {
         subject,
         html,
-        from: 'support@musicoin.org',
+        from: 'news@musicoin.org',
         to: address
       }
     });
