@@ -4,29 +4,35 @@ const largeSend = require('./utils/email').largeSend;
 const Letter = require('./db/models/news-letter');
 
 const queue = "email";
-amqp.connect(process.env.RABBITMQ_SERVER).then(conn => {
-  process.once('SIGINT', conn.close.bind(conn));
-  return conn.createChannel().then(ch => {
-    ch.prefetch(1);
 
-    function _handleMessage(message) {
-      handleMessage(ch, message);
-    }
-
-    return ch.assertQueue(queue, {
-      durable: false
-    }).then(() => {
-      ch.consume(queue, _handleMessage, {
-        noAck: false
-      });
-    }).then(() => {
-      console.log('[*] Waiting for message. To exit press CRTL+C');
-    });;
-
+function start() {
+  amqp.connect(process.env.RABBITMQ_SERVER).then(conn => {
+    process.once('SIGINT', conn.close.bind(conn));
+    return conn.createChannel().then(ch => {
+      ch.prefetch(1);
+  
+      function _handleMessage(message) {
+        handleMessage(ch, message);
+      }
+  
+      return ch.assertQueue(queue, {
+        durable: false
+      }).then(() => {
+        ch.consume(queue, _handleMessage, {
+          noAck: false
+        });
+      }).then(() => {
+        console.log('[*] Waiting for message. To exit press CRTL+C');
+      });;
+  
+    });
+  }).catch(error => {
+    console.log("error: ", error.message);
+    setTimeout(() => {
+      start();
+    }, 10*1000);
   });
-}).catch(error => {
-  console.log("error: ", error.message)
-});
+}
 
 async function handleMessage(channel, message) {
   console.log("task start:", message.content.toString());
@@ -66,3 +72,5 @@ async function handleMessage(channel, message) {
     channel.nack(message)
   }
 }
+
+start();
