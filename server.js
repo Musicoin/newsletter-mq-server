@@ -61,7 +61,7 @@ async function handleMessage(channel, message) {
     const emails = addresses.map(address => {
       const token = URLUtil.createExpiringLink(address, TIMEOUT);
       const unsubscribeLink = "https://staging.musicoin.org//unsubscribe?token="+token;
-      const unsubscribe_html = `<div data-role="module-unsubscribe" class="module unsubscribe-css__unsubscribe___2CDlR" role="module" data-type="unsubscribe" style="color:#444444;font-size:12px;line-height:20px;padding:0px 16px 0px 16px;text-align:center;margin-top: 30px;border-top-color: black; border-top-style: dashed;"><p style="font-family:[Sender_Name];font-size:12px;line-height:20px"><a class="Unsubscribe--unsubscribeLink" href="${unsubscribeLink}">Want to Unsubscribe ?</a></p></div>`;
+      const unsubscribe_html = `<div data-role="module-unsubscribe" class="module unsubscribe-css__unsubscribe___2CDlR" role="module" data-type="unsubscribe" style="color:#444444;font-size:12px;line-height:20px;padding:0px 16px 0px 16px;text-align:center;margin-top: 30px;border-top-color: '#80808038'; border-top-style: inset;border-top-width: 1px;"><p style="font-family:[Sender_Name];font-size:12px;line-height:20px"><a class="Unsubscribe--unsubscribeLink" href="${unsubscribeLink}">Want to Unsubscribe ?</a></p></div>`;
       const real_html = `${html}${unsubscribe_html}`;
       return {
         subject,
