@@ -66,13 +66,11 @@ async function handleMessage(channel, message) {
   console.log("message content: ", content);
 
   try {
-    const letter = await Letter.findOne({
-      _id: id
-    }).exec();
+    const letter = await Letter.findById(id).exec();
 
     if(!letter){
       channel.ack(message);
-      console.log("task complete.");
+      console.log("letter not found: ",id);
       return
     }
 
