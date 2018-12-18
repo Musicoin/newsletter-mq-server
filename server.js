@@ -11,6 +11,14 @@ const INSERT_HTML_2 = `<table class="module" role="module" data-type="social" al
 const TIMEOUT = 3*24*60*60*1000;
 const URLUtil = require('./utils/url-utils');
 
+const UNSUBSCRIBE_ENPOINT = process.env.UNSUBSCRIBE_SERVER+"/unsubscribe?token=";
+const UNSUBSCRIBE_HTML_HEAD = `<div data-role="module-unsubscribe" class="module unsubscribe-css__unsubscribe___2CDlR" role="module" data-type="unsubscribe" style="color:#444444;font-size:12px;line-height:20px;padding:0px 16px 0px 16px;text-align:center;margin-top: 30px;border-top-color: '#80808038'; border-top-style: inset;border-top-width: 1px;"><p style="font-family:[Sender_Name];font-size:12px;line-height:20px"><a class="Unsubscribe--unsubscribeLink" href="`;
+const UNSUBSCRIBE_HTML_TAIL = `">Want to Unsubscribe ?</a></p></div>`;
+
+const argv0 = process.argv[2];
+const mode = argv0 && argv0 === "--test"?"test":"live";
+console.log("mode :",mode);
+
 function start() {
   amqp.connect(process.env.RABBITMQ_SERVER).then(conn => {
     process.once('SIGINT', conn.close.bind(conn));
@@ -41,10 +49,23 @@ function start() {
 }
 
 async function handleMessage(channel, message) {
-  console.log("task start:", message.content.toString());
+  let content;
+  try {
+    const json = message.content.toString();
+    content = JSON.parse(json);
+  } catch (error) {
+    console.log("message is invalid: ",error.message);
+    return channel.ack(message);
+  }
+  
+
+  const id = content.id;
+  console.log("task start:", id);
+  let skip = content.skip || 0;
+  let limit = content.limit || 1000;
+  console.log("message content: ", content);
 
   try {
-    const id = message.content.toString();
     const letter = await Letter.findOne({
       _id: id
     }).exec();
@@ -57,11 +78,11 @@ async function handleMessage(channel, message) {
 
     const subject = letter.subject;
     const html = letter.html;
-    const addresses = letter.addresses;
+    const addresses = letter.addresses.slice(skip, skip+limit);
     const emails = addresses.map(address => {
       const token = URLUtil.createExpiringLink(address, TIMEOUT);
-      const unsubscribeLink = "https://staging.musicoin.org//unsubscribe?token="+token;
-      const unsubscribe_html = `<div data-role="module-unsubscribe" class="module unsubscribe-css__unsubscribe___2CDlR" role="module" data-type="unsubscribe" style="color:#444444;font-size:12px;line-height:20px;padding:0px 16px 0px 16px;text-align:center;margin-top: 30px;border-top-color: '#80808038'; border-top-style: inset;border-top-width: 1px;"><p style="font-family:[Sender_Name];font-size:12px;line-height:20px"><a class="Unsubscribe--unsubscribeLink" href="${unsubscribeLink}">Want to Unsubscribe ?</a></p></div>`;
+      const unsubscribeLink = UNSUBSCRIBE_ENPOINT+token;
+      const unsubscribe_html = `${UNSUBSCRIBE_HTML_HEAD}${unsubscribeLink}${UNSUBSCRIBE_HTML_TAIL}`;
       const real_html = `${html}${unsubscribe_html}`;
       return {
         subject,
@@ -71,12 +92,21 @@ async function handleMessage(channel, message) {
       }
     });
 
-    const issues = await largeSend(emails);
-    letter.issues = issues;
-    letter.status = "sended";
-    await letter.save();
-    channel.ack(message);
-    console.log("task complete.");
+    try {
+      const issues = await largeSend(emails,mode==='test');
+      letter.issues = issues;
+      letter.status = "sended";
+      await letter.save();
+      channel.ack(message);
+      console.log("task complete.");
+    } catch (error) {
+      letter.status = "error";
+      await letter.save();
+      channel.ack(message);
+      console.log("task abort, error: ",error.message);
+    }
+
+    
   } catch (error) {
     console.log("error:", error.message);
     channel.nack(message)

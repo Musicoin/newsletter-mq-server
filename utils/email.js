@@ -3,7 +3,7 @@ const PromisePool = require('es6-promise-pool');
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-const concurrency = 100;
+const concurrency = 50;
 
 function send(email){
   return new Promise((resolve) => {
@@ -32,7 +32,8 @@ function multiSend(emails) {
   }))
 }
 
-async function largeSend(emails) {
+async function largeSend(emails, test=false) {
+
   if(!Array.isArray(emails)) throw new Error('Arguments must be array.');
 
   let count = 0;
@@ -41,7 +42,11 @@ async function largeSend(emails) {
 
   function promiseProducer() {
     if(count < maxCount){
-      const promise = send(emails[count]);
+      const promise = test? Promise.resolve({
+        status: 'success',
+        message: 'send successful!',
+        address: 'test@musicoin.org'
+      }):send(emails[count]);
       count++;
       return promise;
     }else{
